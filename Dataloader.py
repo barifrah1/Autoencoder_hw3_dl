@@ -30,11 +30,11 @@ def initialProcessData(path):
 class DataLoader_RecSys(Dataset):
     def __init__(self, dataset):
         self.dataset = dataset
-        users = list(self.dataset)
-        items = []
-        for user in users:
-            items = items + self.dataset[user]
-        items = *Counter(items)
+        self.users = list(self.dataset)
+        self.items = []
+        for user in self.users:
+            self.items = self.items + self.dataset[user]
+        self.items = Counter(self.items)
 
     def nextitem(self, user, ind):
         return self.dataset[user][ind]
