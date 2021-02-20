@@ -135,4 +135,6 @@ __pycache__/
 cifar/
 cifar/*
 *.pt
+*.csv
 checkpoint.pth
+EX_3.pdf
