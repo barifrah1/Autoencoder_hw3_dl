@@ -43,7 +43,7 @@ class DataLoader_RecSys(Dataset):
         return self.dataset[user]
 
     def userUnseenItems(self, user):
-        return set(items).difference(set(self.userSeenItems(user)))
+        return set(self.items).difference(set(self.userSeenItems(user)))
 
     def __getitem__(self, ind):
         return False
