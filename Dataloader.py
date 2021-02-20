@@ -15,9 +15,9 @@ def initialProcessData(path):
     train = {}
     # create training data
     for row in data:
-        if row[USER_IND] not in train.keys():
-            train[row[USER_IND]] = []
-        train[row[USER_IND]].append(row[ITEM_IND])
+        if row[USER_IND]-1 not in train.keys():
+            train[row[USER_IND]-1] = []
+        train[row[USER_IND]-1].append(row[ITEM_IND]-1)
     validation = {}
     # create validation data
     for user in train.keys():
@@ -27,14 +27,17 @@ def initialProcessData(path):
     return train, validation
 
 
-class DataLoader_RecSys(Dataset):
+class DataLoader_RecSys(DataLoader):
     def __init__(self, dataset):
         self.dataset = dataset
-        self.users = list(self.dataset)
+        self.users = list(self.dataset, keys())
         self.items = []
         for user in self.users:
             self.items = self.items + self.dataset[user]
         self.items = Counter(self.items)
+        self.max_item_index = max(self.items)-1
+        self.max_user_index = max(self.users)-1
+        self.current_user = 0
 
     def nextitem(self, user, ind):
         return self.dataset[user][ind]
@@ -42,11 +45,20 @@ class DataLoader_RecSys(Dataset):
     def userSeenItems(self, user):
         return self.dataset[user]
 
+    def userBinaryVector(self, user):
+        userVector = np.zeros(self.max_item_index + 1)
+        userItems = self.userSeenItems(user)
+        for item in userItems:
+            userVector[item - 1] = 1
+        return userVector
+
     def userUnseenItems(self, user):
-        return set(self.items).difference(set(self.userSeenItems(user)))
+        return list(set(self.items).difference(set(self.userSeenItems(user))))
+
+    def numOfUsers(self):
+        return self.max_user_index + 1
+
+    def numOfItems(self):
+        return self.max_item_index + 1
 
     def __getitem__(self, ind):
-        return False
-
-    def __len__(self):
-        return sum(len(self.dataset[user]) for user in self.dataset.keys())
