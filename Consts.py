@@ -7,7 +7,7 @@ TEST_DATA_POPULAR_PATH = "PopularityTest.csv"
 class AutoEncoderArgs:
     num_epochs = 100
     batch_size = 128
-    learning_rate = 1e-3
+    lr = 1e-3
     weight_decay = 1e-5
-    input_size = 1000
+    input_size = 3705
     hidden_size = 139

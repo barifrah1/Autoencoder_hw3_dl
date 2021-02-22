@@ -12,6 +12,7 @@ if __name__ == "__main__":
     train_dataloader = DataLoader_RecSys(d1)
     args = AutoEncoderArgs()
     model = Autoencoder(args=args)
+    print(train_dataloader.numOfItems())
     print(train_dataloader.userSeenItems(1))
     print(train_dataloader.userUnseenItems(1))
 

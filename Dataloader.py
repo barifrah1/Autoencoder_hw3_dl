@@ -27,7 +27,7 @@ def initialProcessData(path):
     return train, validation
 
 
-class DataLoader_RecSys(DataLoader):
+class DataLoader_RecSys(Dataset):
     def __init__(self, dataset):
         self.dataset = dataset
         self.users = list(self.dataset.keys())
@@ -68,10 +68,9 @@ class DataLoader_RecSys(DataLoader):
         return choice(self.userUnseenItems(user))
 
     def __getitem__(self, ind):
-        userVec = self.userBinaryVector(self.current_user)
-        self.current_user += 1
-        if(self.current_user == self.max_user_index):
-            self.current_user = 0
+        if(ind >= self.__len__()):
+            raise IndexError
+        userVec = self.userBinaryVector(ind)
         return userVec
 
     def __len__(self):

@@ -4,6 +4,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch import optim
+from tqdm import tqdm
 
 num_epochs = 100
 batch_size = 128
@@ -13,15 +14,16 @@ learning_rate = 1e-3
 class Autoencoder(nn.Module):
     def __init__(self, args=None):
         super(Autoencoder, self).__init__()
+        self.args = args
         self.encoder = nn.Sequential(
             nn.Linear(args.input_size, args.hidden_size, bias=True),
             nn.Sigmoid())
         self.decoder = nn.Sequential(
             nn.Linear(args.hidden_size, args.input_size, bias=True),
             nn.Sigmoid())
-        self.args = args
 
     def forward(self, x):
+        x = torch.tensor(x).float()
         x = self.encoder(x)
         x = self.decoder(x)
         return x
@@ -29,16 +31,19 @@ class Autoencoder(nn.Module):
 
 def infer(dataloader, validation, model):
     accuracy = 0
-    for userVec in dataloader:
-        output = model(userVec)
-        index = dataloader.currentUserIndex()
-        validationUserSeenItem = validation[index]
-        itemDrawn = dataloader.drawUnseenItem(index)
-        while(itemDrawn == validationUserSeenItem):
+    model.eval()
+    with torch.no_grad():
+        for userVec in dataloader:
+            userVec = torch.tensor(userVec).float()
+            output = model(userVec)
+            index = dataloader.currentUserIndex()
+            validationUserSeenItem = validation[index]
             itemDrawn = dataloader.drawUnseenItem(index)
-        if(output[validationUserSeenItem] > output[itemDrawn]):
-            accuracy += 1
-        accuracy /= dataloader.numOfUsers()
+            while(itemDrawn == validationUserSeenItem):
+                itemDrawn = dataloader.drawUnseenItem(index)
+            if(output[validationUserSeenItem] > output[itemDrawn]):
+                accuracy += 1
+            accuracy /= dataloader.numOfUsers()
     return accuracy
 
 
@@ -50,11 +55,13 @@ def training_loop(args,
                   ):
     accuracy_by_epoch = []
     criterion = criterion_func()
-    optimizer = optim.Adam(net.parameters(), lr=args.lr,
+    optimizer = optim.Adam(model.parameters(), lr=args.lr,
                            weight_decay=args.weight_decay)
 
     for epoch in range(args.num_epochs):
-        for userVec in tr_dataloader:
+        model.train()
+        for userVec in tqdm(tr_dataloader):
+            userVec = torch.tensor(userVec).float()
             # ===================forward=====================
             output = model(userVec)
             loss = criterion(output, userVec)
@@ -64,7 +71,7 @@ def training_loop(args,
             optimizer.step()
         # ===================log========================
         if epoch % 1 == 0:
-            currentAccuracy = infer(dataloader, validation, model)
+            currentAccuracy = infer(tr_dataloader, validation, model)
             accuracy_by_epoch.append(currentAccuracy)
             print(f" epoch: { epoch+1} validation accuracy: {currentAccuracy}")
 
