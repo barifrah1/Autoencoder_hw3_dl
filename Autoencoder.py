@@ -31,19 +31,23 @@ class Autoencoder(nn.Module):
 
 def infer(dataloader, validation, model):
     accuracy = 0
+    counter = 0
     model.eval()
     with torch.no_grad():
         for userVec in dataloader:
             userVec = torch.tensor(userVec).float()
             output = model(userVec)
             index = dataloader.currentUserIndex()
-            validationUserSeenItem = validation[index]
+            if(len(validation[index] == 0)):
+                counter += 1
+                continue
+            validationUserSeenItem = validation[index][0]
             itemDrawn = dataloader.drawUnseenItem(index)
             while(itemDrawn == validationUserSeenItem):
                 itemDrawn = dataloader.drawUnseenItem(index)
-            if(output[validationUserSeenItem] > output[itemDrawn]):
+            if(output[validationUserSeenItem].item() > output[itemDrawn].item()):
                 accuracy += 1
-            accuracy /= dataloader.numOfUsers()
+            accuracy /= (dataloader.numOfUsers() - counter)
     return accuracy
 
 

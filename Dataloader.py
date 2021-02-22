@@ -65,7 +65,7 @@ class DataLoader_RecSys(Dataset):
         return self.current_user
 
     def drawUnseenItem(self, user):
-        return choice(self.userUnseenItems(user))
+        return random.choice(self.userUnseenItems(user))
 
     def __getitem__(self, ind):
         if(ind >= self.__len__()):
