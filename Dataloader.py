@@ -30,7 +30,7 @@ def initialProcessData(path):
 class DataLoader_RecSys(DataLoader):
     def __init__(self, dataset):
         self.dataset = dataset
-        self.users = list(self.dataset, keys())
+        self.users = list(self.dataset.keys())
         self.items = []
         for user in self.users:
             self.items = self.items + self.dataset[user]
@@ -61,4 +61,18 @@ class DataLoader_RecSys(DataLoader):
     def numOfItems(self):
         return self.max_item_index + 1
 
+    def currentUserIndex(self):
+        return self.current_user
+
+    def drawUnseenItem(self, user):
+        return choice(self.userUnseenItems(user))
+
     def __getitem__(self, ind):
+        userVec = self.userBinaryVector(self.current_user)
+        self.current_user += 1
+        if(self.current_user == self.max_user_index):
+            self.current_user = 0
+        return userVec
+
+    def __len__(self):
+        return self.max_user_index + 1

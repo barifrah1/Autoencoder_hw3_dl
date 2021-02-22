@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
-
+from torch import optim
 
 num_epochs = 100
 batch_size = 128
@@ -27,48 +27,57 @@ class Autoencoder(nn.Module):
         return x
 
 
+def infer(dataloader, validation, model):
+    accuracy = 0
+    for userVec in dataloader:
+        output = model(userVec)
+        index = dataloader.currentUserIndex()
+        validationUserSeenItem = validation[index]
+        itemDrawn = dataloader.drawUnseenItem(index)
+        while(itemDrawn == validationUserSeenItem):
+            itemDrawn = dataloader.drawUnseenItem(index)
+        if(output[validationUserSeenItem] > output[itemDrawn]):
+            accuracy += 1
+        accuracy /= dataloader.numOfUsers()
+    return accuracy
+
+
 def training_loop(args,
                   model,
                   tr_dataloader=None,
-                  val_dataloader=None,
+                  validation=None,
                   criterion_func=nn.MSELoss,
                   ):
+    accuracy_by_epoch = []
     criterion = criterion_func()
     optimizer = optim.Adam(net.parameters(), lr=args.lr,
                            weight_decay=args.weight_decay)
 
-    for epoch in range(num_epochs):
-        for row in tr_dataloader:
-            img, _ = data
-            img = img.view(img.size(0), -1)
-            img = Variable(img).cuda()
+    for epoch in range(args.num_epochs):
+        for userVec in tr_dataloader:
             # ===================forward=====================
-            output = model(img)
-            loss = criterion(output, img)
+            output = model(userVec)
+            loss = criterion(output, userVec)
             # ===================backward====================
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
         # ===================log========================
-        print('epoch [{}/{}], loss:{:.4f}'
-              .format(epoch + 1, num_epochs, loss.data[0]))
-        if epoch % 10 == 0:
-            pic = to_img(output.cpu().data)
-            save_image(pic, './mlp_img/image_{}.png'.format(epoch))
+        if epoch % 1 == 0:
+            currentAccuracy = infer(dataloader, validation, model)
+            accuracy_by_epoch.append(currentAccuracy)
+            print(f" epoch: { epoch+1} validation accuracy: {currentAccuracy}")
 
-    torch.save(model.state_dict(), './sim_autoencoder.pth')
+    return accuracy_by_epoch
 
 
+"""
 def training_loop(
     args,
     net,
-    X_train,
-    y_train,
-    X_test,
-    y_test,
     tr_dataloader=None,
-    val_dataloader=None,
-    criterion_func=nn.CrossEntropyLoss,
+    validation,
+    criterion_func=nn.MSELoss,
     optimizer_func=optim.SGD,
 ):
     train_on_gpu = torch.cuda.is_available()
@@ -140,3 +149,4 @@ def training_loop(
         f"\n\t{tr_loss}, \n\t{val_loss}, \n\tover the training epochs, respectively."
     )
     return net, tr_loss, val_loss, test_loss, tr_auc, val_auc, untrained_test_loss, untrained_test_auc
+"""
