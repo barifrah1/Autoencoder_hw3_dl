@@ -9,5 +9,5 @@ class AutoEncoderArgs:
     batch_size = 128
     lr = 1e-3
     weight_decay = 1e-5
-    input_size = 3705
+    input_size = 3706
     hidden_size = 139

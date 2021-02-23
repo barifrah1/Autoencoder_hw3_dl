@@ -35,8 +35,8 @@ class DataLoader_RecSys(Dataset):
         for user in self.users:
             self.items = self.items + self.dataset[user]
         self.items = Counter(self.items)
-        self.max_item_index = max(self.items)-1
-        self.max_user_index = max(self.users)-1
+        self.max_item_index = max(self.items)
+        self.max_user_index = max(self.users)
         self.current_user = 0
 
     def nextitem(self, user, ind):
@@ -49,7 +49,7 @@ class DataLoader_RecSys(Dataset):
         userVector = np.zeros(self.max_item_index + 1)
         userItems = self.userSeenItems(user)
         for item in userItems:
-            userVector[item - 1] = 1
+            userVector[item] = 1
         return userVector
 
     def userUnseenItems(self, user):
