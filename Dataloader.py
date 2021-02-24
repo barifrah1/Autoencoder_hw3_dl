@@ -22,7 +22,8 @@ def initialProcessData(path):
     # create validation data
     for user in train.keys():
         if(len(train[user]) > 1):
-            validation_item = train[user].pop()
+            validation_item = random.choice(train[user])
+            train[user].remove(validation_item)
             validation[user] = [validation_item]
     return train, validation
 

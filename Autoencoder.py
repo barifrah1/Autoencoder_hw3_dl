@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch import optim
 from tqdm import tqdm
+import pandas as pd
 
 num_epochs = 100
 batch_size = 128
@@ -15,15 +16,16 @@ class Autoencoder(nn.Module):
     def __init__(self, args=None):
         super(Autoencoder, self).__init__()
         self.args = args
-        self.encoder = nn.Sequential(
+        self.encoder = nn.Sequential(nn.Dropout(0.5),
             nn.Linear(args.input_size, args.hidden_size, bias=True),
             nn.Sigmoid())
+        
         self.decoder = nn.Sequential(
             nn.Linear(args.hidden_size, args.input_size, bias=True),
             nn.Sigmoid())
 
     def forward(self, x):
-        x = torch.tensor(x).float()
+        #x = torch.tensor(x).float()
         x = self.encoder(x)
         x = self.decoder(x)
         return x
@@ -33,7 +35,9 @@ def infer(dataloader, validation, model):
     accuracy = 0
     counter = 0
     index = 0
+    comapre_acc=0
     model.eval()
+    privews_test_random = pd.read_csv("random_priviews.csv", sep=',', header=0)
     with torch.no_grad():
         for userVec in dataloader:
             userVec = torch.tensor(userVec).float()
@@ -45,12 +49,24 @@ def infer(dataloader, validation, model):
             itemDrawn = dataloader.drawUnseenItem(index)
             while(itemDrawn == validationUserSeenItem):
                 itemDrawn = dataloader.drawUnseenItem(index)
-            print(output.shape, validationUserSeenItem, itemDrawn,
-                  output[validationUserSeenItem].item(), output[itemDrawn].item())
+            #print(output.shape, validationUserSeenItem, itemDrawn,
+            #      output[validationUserSeenItem].item(), output[itemDrawn].item())
             if(output[validationUserSeenItem].item() > output[itemDrawn].item()):
                 accuracy += 1
+            compare_user=privews_test_random[privews_test_random['UserId']==index+1].to_numpy()[0]
+            item1=compare_user[1]
+            item2=compare_user[2]
+            score=compare_user[3]
+            if score==0:
+                if (output[item1-1].item() > output[item2-1].item()):
+                    comapre_acc+=1
+            if score==1:
+                if (output[item1-1].item() < output[item2-1].item()):
+                    comapre_acc+=1
             index += 1
-    return accuracy
+    acc=accuracy/(dataloader.numOfUsers() - counter)
+    comapre_Accurecy=comapre_acc/6040
+    return acc,comapre_Accurecy
 
 
 def training_loop(args,
@@ -77,9 +93,9 @@ def training_loop(args,
             optimizer.step()
         # ===================log========================
         if epoch % 1 == 0:
-            currentAccuracy = infer(tr_dataloader, validation, model)
+            currentAccuracy,comapre_Acc = infer(tr_dataloader, validation, model)
             accuracy_by_epoch.append(currentAccuracy)
-            print(f" epoch: { epoch+1} validation accuracy: {currentAccuracy}")
+            print(f" epoch: { epoch+1} validation accuracy: {currentAccuracy} comapre acc:{comapre_Acc}")
 
     return accuracy_by_epoch
 
