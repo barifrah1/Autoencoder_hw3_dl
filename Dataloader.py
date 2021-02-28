@@ -15,15 +15,15 @@ def initialProcessData(path):
     data = pd.read_csv(
         path, sep=',', header=0).to_numpy()
     train = {}
-    popularity={}
+    popularity = {}
     # create training data
     for row in data:
         if row[USER_IND]-1 not in train.keys():
             train[row[USER_IND]-1] = []
         train[row[USER_IND]-1].append(row[ITEM_IND]-1)
         if row[ITEM_IND]-1 not in popularity.keys():
-          popularity[row[ITEM_IND]-1]=0
-        popularity[row[ITEM_IND]-1]+=1
+            popularity[row[ITEM_IND]-1] = 0
+        popularity[row[ITEM_IND]-1] += 1
     validation = {}
     # create validation data
     for user in train.keys():
@@ -31,13 +31,13 @@ def initialProcessData(path):
             validation_item = random.choice(train[user])
             train[user].remove(validation_item)
             validation[user] = [validation_item]
-    return train, validation,popularity
+    return train, validation, popularity
 
 
 class DataLoader_RecSys(Dataset):
-    def __init__(self, dataset,popularity):
+    def __init__(self, dataset, popularity):
         self.dataset = dataset
-        self.popularity=popularity
+        self.popularity = popularity
         self.users = list(self.dataset.keys())
         self.items = []
         for user in self.users:
@@ -76,14 +76,18 @@ class DataLoader_RecSys(Dataset):
 
     def drawUnseenItem(self, user):
         return random.choice(self.userUnseenItems(user))
-    
-    def drawPopularunseen (self,user):
-      Unseen=self.userUnseenItems(user)
-      a_subset = {key: value for key, value in self.popularity.items() if key in Unseen}
-      prob=list(a_subset.values())
-      normprob=[number/sum(prob) for number in prob]
-      UnseenItem=np.random.choice(Unseen,100,p=normprob)
-      return UnseenItem
+
+    def drawPopularunseen(self, user):
+        Unseen = self.userUnseenItems(user)
+        print(Unseen)
+        a_subset = {key: value for key,
+                    value in self.popularity.items() if key in Unseen}
+        print("a_subset", a_subset)
+        prob = list(a_subset.values())
+        print("prob", prob)
+        normprob = [number/sum(prob) for number in prob]
+        UnseenItem = np.random.choice(Unseen, 100, p=normprob)
+        return UnseenItem
 
     def __getitem__(self, ind):
         if(ind >= self.__len__()):
