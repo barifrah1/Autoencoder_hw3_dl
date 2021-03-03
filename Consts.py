@@ -10,4 +10,4 @@ class AutoEncoderArgs:
     lr = 1e-4
     weight_decay = 1e-8
     input_size = 3706
-    hidden_size = 100
+    hidden_size = 200

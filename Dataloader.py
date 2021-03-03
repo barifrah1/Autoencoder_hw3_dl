@@ -17,13 +17,13 @@ def initialProcessData(path):
         path, sep=',', header=0).to_numpy()
     train = {}
     popularity = {}
+    for i in range(3706):
+        popularity[i] = 0
     # create training data
     for row in data:
         if row[USER_IND]-1 not in train.keys():
             train[row[USER_IND]-1] = []
         train[row[USER_IND]-1].append(row[ITEM_IND]-1)
-        if row[ITEM_IND]-1 not in popularity.keys():
-            popularity[row[ITEM_IND]-1] = 0
         popularity[row[ITEM_IND]-1] += 1
     validation = {}
     # create validation data
@@ -39,6 +39,8 @@ class DataLoader_RecSys(Dataset):
     def __init__(self, dataset, popularity):
         self.dataset = dataset
         self.popularity = popularity
+        self.popularity_prob = np.array(
+            list(self.popularity.values()))/sum(np.array(list(self.popularity.values())))
         self.users = list(self.dataset.keys())
         self.items = []
         for user in self.users:
