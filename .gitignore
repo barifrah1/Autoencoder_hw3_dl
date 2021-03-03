@@ -138,3 +138,5 @@ cifar/*
 *.csv
 checkpoint.pth
 EX_3.pdf
+PickleOfPopularUnseenLists
+PickleOfPopularUnseenListsValidation

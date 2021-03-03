@@ -5,8 +5,9 @@ import numpy as np
 from numpy.random import choice
 import pandas as pd
 from collections import Counter
-import random
+import random as random
 import pickle
+from tqdm import tqdm
 USER_IND = 0
 ITEM_IND = 1
 
@@ -79,15 +80,33 @@ class DataLoader_RecSys(Dataset):
 
     def drawPopularunseen(self, user):
         Unseen = self.userUnseenItems(user)
-        print(Unseen)
         a_subset = {key: value for key,
                     value in self.popularity.items() if key in Unseen}
-        print("a_subset", a_subset)
         prob = list(a_subset.values())
-        print("prob", prob)
         normprob = [number/sum(prob) for number in prob]
         UnseenItem = np.random.choice(Unseen, 100, p=normprob)
         return UnseenItem
+
+    def __drawPopularUnseenLists__(self, user, k, num_of_seq):
+        listOfSeq = []
+        Unseen = self.userUnseenItems(user)
+        a_subset = {key: value for key,
+                    value in self.popularity.items() if key in Unseen}
+        prob = list(a_subset.values())
+        #normprob = [number/sum(prob) for number in prob]
+        for i in range(num_of_seq):
+            UnseenItems = random.choices(Unseen, weights=prob, k=k)
+            listOfSeq.append(UnseenItems)
+        return listOfSeq
+
+    def createPickleOfPopularUnseenLists(self, k, num_of_seq):
+        li = []
+        for user in tqdm(self.users):
+            li.append(self.__drawPopularUnseenLists__(user, k, num_of_seq))
+        pickle_out = open("PickleOfPopularUnseenListsValidation", "wb")
+        pickle.dump(li, pickle_out)
+        pickle_out.close()
+        return
 
     def __getitem__(self, ind):
         if(ind >= self.__len__()):
