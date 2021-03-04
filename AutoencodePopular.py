@@ -54,7 +54,7 @@ def infer(dataloader, validation, model, epoch=None):
                 userPopProb[item] = 1
             userVec = torch.tensor(userVec).float()
             output = model(userVec)
-            new_output = output*torch.tensor(userPopProb).double()
+            new_output = output  # *torch.tensor(userPopProb).double()
             # compare to recsys
             compare_user = popularity_priviews[popularity_priviews['UserID'] == index+1].to_numpy()[
                 0]
@@ -110,7 +110,7 @@ def training_loop(args,
         index = 0
         for userVec in tqdm(tr_dataloader):
             userItems = tr_dataloader.userSeenItems(index)
-            userPopProb = popProb.copy()*100
+            userPopProb = popProb.copy()*200
             for item in userItems:
                 userPopProb[item] = 1
             rand_vec = rand(args.input_size)
