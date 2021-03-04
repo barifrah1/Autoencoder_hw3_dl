@@ -19,10 +19,10 @@ class AutoencoderPopular(nn.Module):
     def __init__(self, args=None):
         super(AutoencoderPopular, self).__init__()
         self.args = args
-        self.encoder = nn.Sequential(nn.Dropout(0.5),
-                                     nn.Linear(args.input_size,
-                                               args.hidden_size, bias=True),
-                                     nn.Sigmoid())
+        self.encoder = nn.Sequential(
+            nn.Linear(args.input_size,
+                      args.hidden_size, bias=True),
+            nn.Tanh())
 
         self.decoder = nn.Sequential(
             nn.Linear(args.hidden_size, args.input_size, bias=True),
@@ -110,7 +110,7 @@ def training_loop(args,
         index = 0
         for userVec in tqdm(tr_dataloader):
             userItems = tr_dataloader.userSeenItems(index)
-            userPopProb = popProb.copy()*200
+            userPopProb = popProb.copy()*50
             for item in userItems:
                 userPopProb[item] = 1
             rand_vec = rand(args.input_size)
@@ -142,5 +142,7 @@ def training_loop(args,
             accuracy_by_epoch.append(currentAccuracy)
             print(
                 f" epoch: { epoch+1} validation accuracy: {currentAccuracy} comapre acc:{comapre_Acc}")
+            if(epoch % 8 == 0 and epoch != 0):
+                args.lr = args.lr*0.1
 
     return accuracy_by_epoch
