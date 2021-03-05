@@ -13,13 +13,8 @@ if __name__ == "__main__":
     d1, validation_data, popularity = dataloader.initialProcessData(
         TRAIN_DATA_PATH)
     train_dataloader = DataLoader_RecSys(d1, popularity)
-    print(max(train_dataloader.popularity_prob))
-    """pickle_in = open("PickleOfPopularUnseenLists", "rb")
-    unseenPopularItemsList = pickle.load(pickle_in)"""
-    #train_dataloader.createPickleOfPopularUnseenLists(100, 1)
     args = AutoEncoderArgs()
     model = AutoencodePopular.AutoencoderPopular(args=args)
-    #train_dataloader.createPickleOfPopularUnseenLists(1000, 50)
     tr_loop(args,
             model,
             tr_dataloader=train_dataloader,

@@ -10,6 +10,7 @@ import pickle
 from tqdm import tqdm
 USER_IND = 0
 ITEM_IND = 1
+INPUT_SIZE = 3706
 
 
 def initialProcessData(path):
@@ -17,7 +18,7 @@ def initialProcessData(path):
         path, sep=',', header=0).to_numpy()
     train = {}
     popularity = {}
-    for i in range(3706):
+    for i in range(INPUT_SIZE):
         popularity[i] = 0
     # create training data
     for row in data:
@@ -48,9 +49,6 @@ class DataLoader_RecSys(Dataset):
         self.items = Counter(self.items)
         self.max_item_index = max(self.items)
         self.max_user_index = max(self.users)
-        self.current_user = 0
-        with open('popluar_sample.pickle', 'rb') as handle:
-            self.sample_popular = pickle.load(handle)
 
     def nextitem(self, user, ind):
         return self.dataset[user][ind]
@@ -74,41 +72,17 @@ class DataLoader_RecSys(Dataset):
     def numOfItems(self):
         return self.max_item_index + 1
 
-    def currentUserIndex(self):
-        return self.current_user
-
     def drawUnseenItem(self, user):
         return random.choice(self.userUnseenItems(user))
 
-    def drawPopularunseen(self, user):
+    """def drawPopularunseen(self, user):
         Unseen = self.userUnseenItems(user)
         a_subset = {key: value for key,
                     value in self.popularity.items() if key in Unseen}
         prob = list(a_subset.values())
         normprob = [number/sum(prob) for number in prob]
         UnseenItem = np.random.choice(Unseen, 100, p=normprob)
-        return UnseenItem
-
-    def __drawPopularUnseenLists__(self, user, k, num_of_seq):
-        listOfSeq = []
-        Unseen = self.userUnseenItems(user)
-        a_subset = {key: value for key,
-                    value in self.popularity.items() if key in Unseen}
-        prob = list(a_subset.values())
-        #normprob = [number/sum(prob) for number in prob]
-        for i in range(num_of_seq):
-            UnseenItems = random.choices(Unseen, weights=prob, k=k)
-            listOfSeq.append(UnseenItems)
-        return listOfSeq
-
-    def createPickleOfPopularUnseenLists(self, k, num_of_seq):
-        li = []
-        for user in tqdm(self.users):
-            li.append(self.__drawPopularUnseenLists__(user, k, num_of_seq))
-        pickle_out = open("PickleOfPopularUnseenListsValidation", "wb")
-        pickle.dump(li, pickle_out)
-        pickle_out.close()
-        return
+        return UnseenItem"""
 
     def __getitem__(self, ind):
         if(ind >= self.__len__()):

@@ -22,7 +22,7 @@ class AutoencoderPopular(nn.Module):
         self.encoder = nn.Sequential(
             nn.Linear(args.input_size,
                       args.hidden_size, bias=True),
-            nn.Tanh())
+            nn.Sigmoid())
 
         self.decoder = nn.Sequential(
             nn.Linear(args.hidden_size, args.input_size, bias=True),
@@ -79,10 +79,9 @@ def infer(dataloader, validation, model, epoch=None):
                 prob[item] = 0
             itemDrawn = random.choices(
                 range(model.args.input_size), weights=prob, k=1)
-            """while(itemDrawn == validationUserSeenItem):
-                itemDrawn = choice(dataloader.sample_popular[index])"""
-            # print(output.shape, validationUserSeenItem, itemDrawn,
-            #      output[validationUserSeenItem].item(), output[itemDrawn].item())
+            while(itemDrawn == validationUserSeenItem):
+                itemDrawn = random.choices(
+                    range(model.args.input_size), weights=prob, k=1)
             if(new_output[validationUserSeenItem].item() > new_output[itemDrawn].item()):
                 accuracy += 1
             index += 1
@@ -101,8 +100,6 @@ def training_loop(args,
     criterion = criterion_func()
     optimizer = optim.Adam(model.parameters(), lr=args.lr,
                            weight_decay=args.weight_decay)
-    """pickle_in = open("PickleOfPopularUnseenLists", "rb")
-    unseenPopularItemsList = pickle.load(pickle_in)"""
     popProb = tr_dataloader.popularity_prob
 
     for epoch in range(args.num_epochs):
@@ -110,7 +107,7 @@ def training_loop(args,
         index = 0
         for userVec in tqdm(tr_dataloader):
             userItems = tr_dataloader.userSeenItems(index)
-            userPopProb = popProb.copy()*50
+            userPopProb = popProb.copy()*200
             for item in userItems:
                 userPopProb[item] = 1
             rand_vec = rand(args.input_size)
@@ -118,17 +115,10 @@ def training_loop(args,
             for j in range(args.input_size):
                 if(rand_vec[j] < userPopProb[j]):
                     mask[j] = 1
-            #currenUserPopularItemList = unseenPopularItemsList[index]
             userVec = torch.tensor(userVec).float()
-            # ==============Noise Adding======================
-            #noisyuservecter = userVec+torch.randn(userVec.shape[0])
-            # print(noisyuservecter.shape)
             # ===================forward=====================
             output = model(userVec)
             new_output = output*torch.tensor(mask)
-            """currenUserPopularItemListCurrentEpoch = currenUserPopularItemList[epoch][:100]
-            for item in currenUserPopularItemListCurrentEpoch:
-                new_output[item] = output[item]"""
             loss = criterion(new_output, userVec.double())
             # ===================backward====================
             optimizer.zero_grad()
