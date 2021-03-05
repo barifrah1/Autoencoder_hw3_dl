@@ -1,4 +1,5 @@
 import torchvision
+import torch as torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
@@ -36,7 +37,8 @@ def initialProcessData(path):
 
 
 class DataLoader_RecSys(Dataset):
-    def __init__(self, dataset, popularity):
+    def __init__(self, dataset, popularity, batch_size=10):
+        self.batch_size = batch_size
         self.dataset = dataset
         self.popularity = popularity
         self.popularity_prob = np.array(
@@ -51,6 +53,7 @@ class DataLoader_RecSys(Dataset):
         self.current_user = 0
         with open('popluar_sample.pickle', 'rb') as handle:
             self.sample_popular = pickle.load(handle)
+        self.index = 0
 
     def nextitem(self, user, ind):
         return self.dataset[user][ind]
@@ -111,9 +114,13 @@ class DataLoader_RecSys(Dataset):
         return
 
     def __getitem__(self, ind):
-        if(ind >= self.__len__()):
+        if(self.index >= self.__len__()):
+            self.index = 0
             raise IndexError
-        userVec = self.userBinaryVector(ind)
+        userVec = torch.zeros([batch_size, 3706])
+        for i in range(batch_size):
+            userVec[i] = self.userBinaryVector(self.index + i)
+        self.index += batch_size
         return userVec
 
     def __len__(self):

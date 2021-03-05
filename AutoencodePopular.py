@@ -109,6 +109,7 @@ def training_loop(args,
         model.train()
         index = 0
         for userVec in tqdm(tr_dataloader):
+            output = model(userVec)
             userItems = tr_dataloader.userSeenItems(index)
             userPopProb = popProb.copy()*50
             for item in userItems:
@@ -124,7 +125,7 @@ def training_loop(args,
             #noisyuservecter = userVec+torch.randn(userVec.shape[0])
             # print(noisyuservecter.shape)
             # ===================forward=====================
-            output = model(userVec)
+
             new_output = output*torch.tensor(mask)
             """currenUserPopularItemListCurrentEpoch = currenUserPopularItemList[epoch][:100]
             for item in currenUserPopularItemListCurrentEpoch:
