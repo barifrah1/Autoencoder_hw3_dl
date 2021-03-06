@@ -6,12 +6,7 @@ from torch.utils.data import DataLoader
 from torch import optim
 from tqdm import tqdm
 import pandas as pd
-from numpy.random import choice
-import random
-
-num_epochs = 100
-batch_size = 128
-learning_rate = 1e-3
+import numpy as np
 
 
 class Autoencoder(nn.Module):
@@ -38,43 +33,24 @@ def infer(dataloader, validation, model):
     accuracy = 0
     counter = 0
     index = 0
-    comapre_acc = 0
     model.eval()
-    popularity_priviews = pd.read_csv(
-        "popularity_priviews.csv", sep=',', header=0)
     with torch.no_grad():
         for userVec in dataloader:
             userVec = torch.tensor(userVec).float()
             output = model(userVec)
-            # compare to recsys
-            compare_user = popularity_priviews[popularity_priviews['UserID'] == index+1].to_numpy()[
-                0]
-            item1 = compare_user[1]
-            item2 = compare_user[2]
-            score = compare_user[3]
-            if score == 0:
-                if (output[item1-1].item() > output[item2-1].item()):
-                    comapre_acc += 1
-            if score == 1:
-                if (output[item1-1].item() < output[item2-1].item()):
-                    comapre_acc += 1
-
             if(len(validation[index]) == 0):
                 index += 1
                 counter += 1
                 continue
             validationUserSeenItem = validation[index][0]
-            itemDrawn = choice(dataloader.sample_popular[index])
+            itemDrawn = dataloader.drawUnseenItem(index)
             while(itemDrawn == validationUserSeenItem):
-                itemDrawn = choice(dataloader.sample_popular[index])
-            # print(output.shape, validationUserSeenItem, itemDrawn,
-            #      output[validationUserSeenItem].item(), output[itemDrawn].item())
+                itemDrawn = dataloader.drawUnseenItem(index)
             if(output[validationUserSeenItem].item() > output[itemDrawn].item()):
                 accuracy += 1
             index += 1
     acc = accuracy/(dataloader.numOfUsers() - counter)
-    comapre_Accurecy = comapre_acc/6040
-    return acc, comapre_Accurecy
+    return acc
 
 
 def training_loop(args,
@@ -92,11 +68,8 @@ def training_loop(args,
         model.train()
         for userVec in tqdm(tr_dataloader):
             userVec = torch.tensor(userVec).float()
-            # ==============Noise Adding======================
-            noisyuservecter = userVec+torch.randn(userVec.shape[0])
-            # print(noisyuservecter.shape)
             # ===================forward=====================
-            output = model(noisyuservecter)
+            output = model(userVec)
             loss = criterion(output, userVec)
             # ===================backward====================
             optimizer.zero_grad()
@@ -104,10 +77,29 @@ def training_loop(args,
             optimizer.step()
         # ===================log========================
         if epoch % 1 == 0:
-            currentAccuracy, comapre_Acc = infer(
+            currentAccuracy = infer(
                 tr_dataloader, validation, model)
             accuracy_by_epoch.append(currentAccuracy)
             print(
-                f" epoch: { epoch+1} validation accuracy: {currentAccuracy} comapre acc:{comapre_Acc}")
+                f" epoch: { epoch+1} validation accuracy: {currentAccuracy}")
+            if currentAccuracy > 0.932:
+                break
+    predict = pd.read_csv("RandomTest.csv")
+    data = predict.values
+    for x in data:
+        user = x[0]-1
+        item1 = x[1]-1
+        item2 = x[2]-1
+        uservector = tr_dataloader.__getitem__(user)
+        uservector = torch.tensor(uservector).float()
+        with torch.no_grad():
+            output = model(uservector)
+            if output[item1] >= output[item2]:
+                x[3] = 0
+            if output[item1] < output[item2]:
+                x[3] = 1
+    df = pd.DataFrame(
+        data, columns=['UserID', 'Item1', 'Item2', 'bitClassification'])
+    df.to_csv(r'popularity_205592652_312425036.csv', index=False)
 
     return accuracy_by_epoch

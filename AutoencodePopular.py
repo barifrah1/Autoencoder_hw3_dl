@@ -35,16 +35,11 @@ class AutoencoderPopular(nn.Module):
         return x
 
 
-def infer(dataloader, validation, model, epoch=None):
+def infer(dataloader, validation, model):
     accuracy = 0
     counter = 0
     index = 0
-    comapre_acc = 0
     model.eval()
-    popularity_priviews = pd.read_csv(
-        "popularity_priviews.csv", sep=',', header=0)
-    #pickle_in = open("PickleOfPopularUnseenListsValidation", "rb")
-    #unseenPopularItemsList = pickle.load(pickle_in)
     popProb = dataloader.popularity_prob
     with torch.no_grad():
         for userVec in tqdm(dataloader):
@@ -54,20 +49,7 @@ def infer(dataloader, validation, model, epoch=None):
                 userPopProb[item] = 1
             userVec = torch.tensor(userVec).float()
             output = model(userVec)
-            new_output = output  # *torch.tensor(userPopProb).double()
-            # compare to recsys
-            compare_user = popularity_priviews[popularity_priviews['UserID'] == index+1].to_numpy()[
-                0]
-            item1 = compare_user[1]
-            item2 = compare_user[2]
-            score = compare_user[3]
-            if score == 0:
-                if (new_output[item1-1].item() > new_output[item2-1].item()):
-                    comapre_acc += 1
-            if score == 1:
-                if (new_output[item1-1].item() < new_output[item2-1].item()):
-                    comapre_acc += 1
-
+            new_output = output
             if(len(validation[index]) == 0):
                 index += 1
                 counter += 1
@@ -86,8 +68,7 @@ def infer(dataloader, validation, model, epoch=None):
                 accuracy += 1
             index += 1
     acc = accuracy/(dataloader.numOfUsers() - counter)
-    comapre_Accurecy = comapre_acc/6040
-    return acc, comapre_Accurecy
+    return acc
 
 
 def training_loop(args,
@@ -96,6 +77,7 @@ def training_loop(args,
                   validation=None,
                   criterion_func=nn.MSELoss,
                   ):
+    c = 0
     accuracy_by_epoch = []
     criterion = criterion_func()
     optimizer = optim.Adam(model.parameters(), lr=args.lr,
@@ -107,7 +89,7 @@ def training_loop(args,
         index = 0
         for userVec in tqdm(tr_dataloader):
             userItems = tr_dataloader.userSeenItems(index)
-            userPopProb = popProb.copy()*200
+            userPopProb = popProb.copy()*args.popularity_multiplyer
             for item in userItems:
                 userPopProb[item] = 1
             rand_vec = rand(args.input_size)
@@ -115,6 +97,9 @@ def training_loop(args,
             for j in range(args.input_size):
                 if(rand_vec[j] < userPopProb[j]):
                     mask[j] = 1
+                    c += 1
+            # print(c)
+            c = 0
             userVec = torch.tensor(userVec).float()
             # ===================forward=====================
             output = model(userVec)
@@ -127,12 +112,30 @@ def training_loop(args,
             index += 1
         # ===================log========================
         if epoch % 1 == 0:
-            currentAccuracy, comapre_Acc = infer(
-                tr_dataloader, validation, model, epoch=epoch)
+            currentAccuracy = infer(
+                tr_dataloader, validation, model)
             accuracy_by_epoch.append(currentAccuracy)
             print(
-                f" epoch: { epoch+1} validation accuracy: {currentAccuracy} comapre acc:{comapre_Acc}")
+                f" epoch: { epoch+1} tr_loss: {loss} validation accuracy: {currentAccuracy} ")
             if(epoch % 8 == 0 and epoch != 0):
                 args.lr = args.lr*0.1
-
+        if currentAccuracy > 0.87:
+            break
+    predict = pd.read_csv("PopularityTest.csv")
+    data = predict.values
+    for x in data:
+        user = x[0]-1
+        item1 = x[1]-1
+        item2 = x[2]-1
+        uservector = tr_dataloader.__getitem__(user)
+        uservector = torch.tensor(uservector).float()
+        with torch.no_grad():
+            output = model(uservector)
+            if output[item1] >= output[item2]:
+                x[3] = 0
+            if output[item1] < output[item2]:
+                x[3] = 1
+    df = pd.DataFrame(
+        data, columns=['UserID', 'Item1', 'Item2', 'bitClassification'])
+    df.to_csv(r'popularity_205592652_312425036.csv', index=False)
     return accuracy_by_epoch
